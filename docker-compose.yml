@@ -7,7 +7,7 @@ services:
         - "6379:6379"
 
   azure-vote-front:
-    image: pelithnecr.azurecr.io/azure-vote-front:v1 
+    build: ./azure-vote
     container_name: azure-vote-front
     environment:
       REDIS: azure-vote-back

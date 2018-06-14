@@ -5,6 +5,8 @@ import redis
 import socket
 import sys
 
+from socket import error as socket_error
+
 app = Flask(__name__)
 
 # Load configurations from environment or config file
@@ -38,7 +40,9 @@ try:
         r = redis.Redis(redis_server)
     r.ping()
 except redis.ConnectionError:
-    exit('Failed to connect to Redis, terminating.')
+    exit('Failed to connect to Redis')
+
+     
 
 # Change title to host name to demo NLB
 if app.config['SHOWHOST'] == "true":
@@ -50,39 +54,46 @@ if not r.get(button2): r.set(button2,0)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    try:
+        if request.method == 'GET':
 
-    if request.method == 'GET':
-
-        # Get current values
-        vote1 = r.get(button1).decode('utf-8')
-        vote2 = r.get(button2).decode('utf-8')            
-
-        # Return index with values
-        return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
-
-    elif request.method == 'POST':
-
-        if request.form['vote'] == 'reset':
-            
-            # Empty table and return results
-            r.set(button1,0)
-            r.set(button2,0)
-            vote1 = r.get(button1).decode('utf-8')
-            vote2 = r.get(button2).decode('utf-8')
-            return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
-        
-        else:
-
-            # Insert vote result into DB
-            vote = request.form['vote']
-            r.incr(vote,1)
-            
             # Get current values
             vote1 = r.get(button1).decode('utf-8')
-            vote2 = r.get(button2).decode('utf-8')  
-                
-            # Return results
+            print ("Current values-Vote1: ", vote1)
+            vote2 = r.get(button2).decode('utf-8')            
+
+            # Return index with values
             return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
+
+        elif request.method == 'POST':
+
+            if request.form['vote'] == 'reset':
+                
+                # Empty table and return results
+                r.set(button1,0)
+                r.set(button2,0)
+                vote1 = r.get(button1).decode('utf-8')
+                print ("reset-Vote1: ", vote1)
+                vote2 = r.get(button2).decode('utf-8')
+                return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
+            
+            else:
+
+                # Insert vote result into DB
+                vote = request.form['vote']
+                r.incr(vote,1)
+                
+                # Get current values
+                vote1 = r.get(button1).decode('utf-8')
+                print ("voteVote1: ", vote1)
+                vote2 = r.get(button2).decode('utf-8')  
+                    
+                # Return results
+                return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
+
+    except (redis.exceptions.ConnectionError, socket.gaierror) as e:
+        print("Failed to connect to redis")
+    
 
 if __name__ == "__main__":
     app.run()
